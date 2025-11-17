@@ -2,43 +2,42 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include "shell.h"    // For parse and execute function prototypes
+#include "shell.h"
 
-#define MAX_INPUT 1024
+#define INPUT_MAX 2048
 
 int main() {
-    char input[MAX_INPUT];
+    char line[INPUT_MAX];
 
-    // Stage 1: Initialization
-    printf("Welcome to CustomShell!\n");
+    init_shell();  // initialize jobs, signals, history
 
     while (1) {
-        // 1. Print prompt
-        printf("CustomShell> ");
+        char cwd[512];
+        if (getcwd(cwd, sizeof(cwd)) != NULL)
+            printf("customshell:%s> ", cwd);
+        else
+            printf("customshell> ");
         fflush(stdout);
 
-        // 2. Read user input
-        if (fgets(input, MAX_INPUT, stdin) == NULL) {
+        if (!fgets(line, sizeof(line), stdin)) {
             printf("\n");
-            break; // EOF (Ctrl+D) exits shell
+            break;
         }
+        line[strcspn(line, "\n")] = '\0';
+        if (line[0] == '\0') continue;
 
-        // Remove trailing newline
-        input[strcspn(input, "\n")] = '\0';
+        struct command *cmd = parse_line(line);
+        if (!cmd) continue;
 
-        // 3. Skip empty input
-        if (strlen(input) == 0)
-            continue;
-
-        // 4. Check for exit command
-        if (strcmp(input, "exit") == 0) {
-            printf("Bye!\n");
+        if (cmd->argc == 1 && strcmp(cmd->argv[0], "exit") == 0) {
+            free_command(cmd);
             break;
         }
 
-        // 5. Send input to parser & executor
-        execute_command(input);
+        execute_command(cmd);
+        free_command(cmd);
     }
 
+    cleanup_shell();
     return 0;
 }

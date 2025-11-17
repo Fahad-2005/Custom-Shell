@@ -2,57 +2,123 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <sys/types.h>
 #include <sys/wait.h>
 #include "shell.h"
-#include "commands.h"
-#include "utils.h"
 
-#define MAX_ARGS 64
+/* ----------------- Command Struct ----------------- */
+struct command *new_command() {
+    struct command *c = malloc(sizeof(struct command));
+    c->argv = NULL;
+    c->argc = 0;
+    c->background = 0;
+    c->infile = NULL;
+    c->outfile = NULL;
+    c->append = 0;
+    c->next = NULL;
+    return c;
+}
 
-// Stage 2 & 3: Parse and execute command
-void execute_command(char *input) {
-    char *args[MAX_ARGS];
-    int argc = 0;
+void push_arg(struct command *c, const char *arg) {
+    c->argv = realloc(c->argv, sizeof(char*)*(c->argc+2));
+    c->argv[c->argc] = strdup(arg);
+    c->argc++;
+    c->argv[c->argc] = NULL;
+}
 
-    // Stage 2: Parsing
-    char *token = strtok(input, " "); // split by space
-    while (token != NULL && argc < MAX_ARGS - 1) {
-        args[argc++] = token;
-        token = strtok(NULL, " ");
-    }
-    args[argc] = NULL; // Null-terminate args array
+/* ----------------- Parser ----------------- */
+struct command *parse_line(const char *line) {
+    struct command *head = new_command();
+    struct command *curr = head;
 
-    if (argc == 0) return; // empty command
+    int i = 0, len = strlen(line);
+    char token[1024];
+    int tpos = 0;
+    char quote = 0;
 
-    // Stage 3: Execute built-in commands
-    if (strcmp(args[0], "cd") == 0) {
-        builtin_cd(args);
-        return;
-    }
-    if (strcmp(args[0], "help") == 0) {
-        builtin_help();
-        return;
-    }
-    if (strcmp(args[0], "exit") == 0) {
-        // Handled in main.c
-        return;
-    }
-
-    // Stage 3: Execute external commands
-    pid_t pid = fork();
-    if (pid < 0) {
-        perror("fork failed");
-        return;
-    }
-
-    if (pid == 0) {
-        // Child process
-        if (execvp(args[0], args) < 0) {
-            perror("Command execution failed");
-            exit(EXIT_FAILURE);
+    while (i <= len) {
+        char c = line[i];
+        if ((c == ' ' || c == '\t' || c == '\0') && quote == 0) {
+            if (tpos > 0) {
+                token[tpos] = '\0';
+                push_arg(curr, token);
+                tpos = 0;
+            }
+        } else if ((c == '\'' || c == '"') && quote == 0) {
+            quote = c;
+        } else if (c == quote) {
+            quote = 0;
+        } else if (c == '\\') {
+            i++;
+            if (i < len) token[tpos++] = line[i];
+        } else if (c == '|') {
+            if (tpos > 0) {
+                token[tpos] = '\0';
+                push_arg(curr, token);
+                tpos = 0;
+            }
+            curr->next = new_command();
+            curr = curr->next;
+        } else if (c == '<' || c == '>') {
+            if (tpos > 0) {
+                token[tpos] = '\0';
+                push_arg(curr, token);
+                tpos = 0;
+            }
+            int append = 0;
+            if (c == '>' && line[i+1] == '>') { append = 1; i++; }
+            i++;
+            while (line[i]==' ' || line[i]=='\t') i++;
+            int j=0; char fname[512];
+            while (line[i] && line[i]!=' ' && line[i]!='\t' && line[i]!='>' && line[i]!='<' && line[i]!='&') {
+                fname[j++] = line[i++];
+            }
+            fname[j] = '\0';
+            i--;
+            if (c == '<') curr->infile = strdup(fname);
+            else { curr->outfile = strdup(fname); curr->append = append; }
+        } else if (c == '&' && quote==0) {
+            curr->background = 1;
+        } else {
+            token[tpos++] = c;
         }
-    } else {
-        // Parent process waits for child
-        wait(NULL);
+        i++;
+    }
+
+    return head;
+}
+
+void free_command(struct command *cmd) {
+    while (cmd) {
+        for (int i=0;i<cmd->argc;i++) free(cmd->argv[i]);
+        free(cmd->argv);
+        if (cmd->infile) free(cmd->infile);
+        if (cmd->outfile) free(cmd->outfile);
+        struct command *next = cmd->next;
+        free(cmd);
+        cmd = next;
+    }
+}
+
+/* ----------------- Executor (Stage 2 Stub) ----------------- */
+int is_builtin(const char *name);
+int run_builtin(struct command *cmd);
+
+void execute_command(struct command *cmd) {
+    while (cmd) {
+        if (!cmd || cmd->argc==0) { cmd = cmd->next; continue; }
+
+        if (is_builtin(cmd->argv[0])) {
+            run_builtin(cmd);
+        } else {
+            /* External command stub: Stage 3 will fork/exec and handle redirection, pipes, background */
+            printf("External command: %s", cmd->argv[0]);
+            if (cmd->infile) printf(" < %s", cmd->infile);
+            if (cmd->outfile) printf(" >%s %s", cmd->append?"":"", cmd->outfile);
+            if (cmd->background) printf(" &");
+            printf("\n");
+        }
+
+        cmd = cmd->next;
     }
 }
