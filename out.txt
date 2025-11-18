@@ -1,0 +1,11 @@
+total 60
+drwxrwxr-x 2 vboxuser vboxuser  4096 Nov 18 08:33 include
+-rw-rw-r-- 1 vboxuser vboxuser   996 Nov 18 10:44 main.c
+-rw-rw-r-- 1 vboxuser vboxuser     0 Nov 18 08:33 Makefile
+-rwxrwxr-x 1 vboxuser vboxuser 22120 Nov 18 10:45 myshell
+-rw-rw-r-- 1 vboxuser vboxuser     0 Nov 18 10:46 out.txt
+-rw-rw-r-- 1 vboxuser vboxuser    14 Nov 18 08:33 README.md
+-rw-rw-r-- 1 vboxuser vboxuser  8266 Nov 18 10:40 shell.c
+-rw-rw-r-- 1 vboxuser vboxuser   990 Nov 18 10:39 shell.h
+drwxrwxr-x 2 vboxuser vboxuser  4096 Nov 18 08:33 src
+-rw-rw-r-- 1 vboxuser vboxuser  2822 Nov 18 10:40 utils.c

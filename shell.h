@@ -3,13 +3,13 @@
 
 /* ----------------- Command Struct ----------------- */
 struct command {
-    char **argv;            // argument list
-    int argc;               // number of arguments
-    int background;         // 1 if command ends with &
-    char *infile;           // input redirection file
-    char *outfile;          // output redirection file
-    int append;             // 1 if >> append
-    struct command *next;   // next command in a pipeline
+    char **argv;
+    int argc;
+    int background;
+    char *infile;
+    char *outfile;
+    int append;
+    struct command *next;
 };
 
 /* ----------------- Parser ----------------- */

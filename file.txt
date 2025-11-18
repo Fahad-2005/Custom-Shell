@@ -1,0 +1,3 @@
+foo is here
+bar is not
+another foo line
