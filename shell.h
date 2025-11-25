@@ -1,6 +1,8 @@
 #ifndef SHELL_H
 #define SHELL_H
 
+#include <stdio.h>
+#include <stdlib.h>
 #include <unistd.h>
 #include <sys/types.h>
 
@@ -30,20 +32,19 @@ int run_builtin(struct command *cmd);
 void init_shell();
 void cleanup_shell();
 
-/* ----------------- Job & signal ----------------- */
+/* ----------------- Jobs & signals ----------------- */
 typedef struct {
     int id;
-    pid_t pgid;
-    int running;        // 1 = running, 0 = stopped
+    int running;
     char cmdline[1024];
 } job_t;
 
 void init_jobs();
 void cleanup_jobs();
-void add_job(pid_t pgid, int bg, const char *cmdline);
+void add_job(const char *cmdline,int bg);
 void print_jobs();
-void fg_job(int id);
-void bg_job(int id);
+void bring_job(int id);
+void runbg_job(int id);
 
 /* ----------------- History ----------------- */
 void init_history();
@@ -56,4 +57,3 @@ void init_signals();
 void cleanup_signals();
 
 #endif
-
