@@ -1,3 +1,5 @@
+//===========shell.c============//
+
 #include <sys/wait.h>
 #include <sys/types.h>
 #include <unistd.h>
@@ -5,6 +7,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
+#include <signal.h>
 #include "shell.h"
 
 /* ---------------- helper ---------------- */
@@ -126,7 +129,10 @@ void execute_command(struct command *cmd){
 
         pid_t pid = fork();
         if(pid==0){
-            // child
+            // CHILD PROCESS - Reset signal handlers to default
+            signal(SIGINT, SIG_DFL);
+            signal(SIGTSTP, SIG_DFL);
+            
             if(in_fd != STDIN_FILENO){
                 dup2(in_fd, STDIN_FILENO);
                 close(in_fd);
@@ -159,27 +165,37 @@ void execute_command(struct command *cmd){
             _exit(127);
         }
         else if(pid>0){
+            // PARENT PROCESS
             if(in_fd != STDIN_FILENO) close(in_fd);
             if(c->next){
                 close(fd[1]);
                 in_fd = fd[0]; // next command reads from here
             }
-            if(!c->background) waitpid(pid,NULL,0);
-            else add_job(c->argv[0],1);
+            
+            if(!c->background){
+                int status;
+                waitpid(pid, &status, 0);
+            }
+            else {
+                add_job(c->argv[0], 1);
+            }
         }
-        else perror("fork");
+        else {
+            perror("fork");
+        }
 
         c = c->next;
     }
 }
 
 /* ---------------- INIT / CLEANUP ---------------- */
-extern void init_history();
+extern void sh_history_init();
+extern void sh_history_cleanup();
 extern void init_jobs();
 extern void init_signals();
-extern void cleanup_history();
 extern void cleanup_jobs();
 extern void cleanup_signals();
 
-void init_shell(){ init_history(); init_jobs(); init_signals(); }
-void cleanup_shell(){ cleanup_jobs(); cleanup_signals(); cleanup_history(); }
+void init_shell(){ sh_history_init(); init_jobs(); init_signals(); }
+void cleanup_shell(){ cleanup_jobs(); cleanup_signals(); sh_history_cleanup(); }
+

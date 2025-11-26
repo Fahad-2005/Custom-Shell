@@ -46,14 +46,15 @@ void print_jobs();
 void bring_job(int id);
 void runbg_job(int id);
 
-/* ----------------- History ----------------- */
-void init_history();
-void add_history(const char *cmd);
-void print_history();
-void cleanup_history();
+/* ----------------- History (wrappers around readline) ----------------- */
+void sh_history_init();
+void sh_history_add(const char *cmd);
+void sh_history_print();
+void sh_history_cleanup();
 
 /* ----------------- Signals ----------------- */
 void init_signals();
 void cleanup_signals();
 
 #endif
+
